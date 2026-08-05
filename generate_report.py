@@ -9,10 +9,34 @@ def fetch_rss_news():
     Fetch latest AI news from trusted RSS feeds
     """
     feeds = [
-        ("https://news.ycombinator.com/rss", "Hacker News"),
-        ("https://techcrunch.com/category/artificial-intelligence/feed/", "TechCrunch AI"),
-        ("https://www.theverge.com/rss/ai-artificial-intelligence/index.xml", "The Verge AI")
-    ]
+    # --- 1. 顶级 AI 实验室与科技巨头官方博客（一手发布） ---
+    ("https://openai.com/news/rss.xml", "OpenAI Official"),
+    ("https://blog.google/technology/ai/rss/", "Google AI Blog"),
+    ("https://huggingface.co/blog/feed.xml", "Hugging Face Blog"),
+    ("https://blogs.nvidia.com/feed/", "NVIDIA Blog"),
+    ("https://blogs.microsoft.com/ai/feed/", "Microsoft AI"),
+    ("https://aws.amazon.com/blogs/machine-learning/feed/", "AWS Machine Learning"),
+
+    # --- 2. 国际顶尖科技与 AI 媒体（行业追踪与深度报道） ---
+    ("https://techcrunch.com/category/artificial-intelligence/feed/", "TechCrunch AI"),
+    ("https://www.theverge.com/rss/ai-artificial-intelligence/index.xml", "The Verge AI"),
+    ("https://www.technologyreview.com/feed/", "MIT Tech Review"),
+    ("https://venturebeat.com/category/ai/feed/", "VentureBeat AI"),
+    ("https://feeds.arstechnica.com/arstechnica/index", "Ars Technica"),
+
+    # --- 3. 中文科技与 AI 行业媒体（国内动态与应用落地） ---
+    ("https://36kr.com/feed", "36氪"),
+    ("https://sspai.com/feed", "少数派"),
+    ("https://www.tmtpost.com/rss.xml", "钛媒体"),
+    ("https://www.pingwest.com/feed", "PingWest 品玩"),
+    ("https://www.ithome.com/rss/", "IT之家"),
+
+    # --- 4. 开发者、开源社区与前沿论文 ---
+    ("https://news.ycombinator.com/rss", "Hacker News"),
+    ("http://export.arxiv.org/rss/cs.AI", "ArXiv Artificial Intelligence"),
+    ("http://export.arxiv.org/rss/cs.CL", "ArXiv Computation & Language"),
+    ("https://paperswithcode.com/rss/papers", "Papers With Code")
+]
     
     news_items = []
     for feed_url, source_name in feeds:
