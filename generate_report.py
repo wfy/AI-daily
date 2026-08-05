@@ -6,49 +6,57 @@ from bs4 import BeautifulSoup
 
 def fetch_rss_news():
     """
-    Fetch latest AI news from trusted RSS feeds
+    Fetch comprehensive AI news from 20+ top global sources
     """
     feeds = [
-    # --- 1. 顶级 AI 实验室与科技巨头官方博客（一手发布） ---
-    ("https://openai.com/news/rss.xml", "OpenAI Official"),
-    ("https://blog.google/technology/ai/rss/", "Google AI Blog"),
-    ("https://huggingface.co/blog/feed.xml", "Hugging Face Blog"),
-    ("https://blogs.nvidia.com/feed/", "NVIDIA Blog"),
-    ("https://blogs.microsoft.com/ai/feed/", "Microsoft AI"),
-    ("https://aws.amazon.com/blogs/machine-learning/feed/", "AWS Machine Learning"),
+        # --- 1. 顶级 AI 实验室与科技巨头官方博客 ---
+        ("https://openai.com/news/rss.xml", "OpenAI Official"),
+        ("https://blog.google/technology/ai/rss/", "Google AI Blog"),
+        ("https://huggingface.co/blog/feed.xml", "Hugging Face Blog"),
+        ("https://blogs.nvidia.com/feed/", "NVIDIA Blog"),
+        ("https://blogs.microsoft.com/ai/feed/", "Microsoft AI"),
+        ("https://aws.amazon.com/blogs/machine-learning/feed/", "AWS Machine Learning"),
 
-    # --- 2. 国际顶尖科技与 AI 媒体（行业追踪与深度报道） ---
-    ("https://techcrunch.com/category/artificial-intelligence/feed/", "TechCrunch AI"),
-    ("https://www.theverge.com/rss/ai-artificial-intelligence/index.xml", "The Verge AI"),
-    ("https://www.technologyreview.com/feed/", "MIT Tech Review"),
-    ("https://venturebeat.com/category/ai/feed/", "VentureBeat AI"),
-    ("https://feeds.arstechnica.com/arstechnica/index", "Ars Technica"),
+        # --- 2. 国际顶尖科技与 AI 媒体 ---
+        ("https://techcrunch.com/category/artificial-intelligence/feed/", "TechCrunch AI"),
+        ("https://www.theverge.com/rss/ai-artificial-intelligence/index.xml", "The Verge AI"),
+        ("https://www.technologyreview.com/feed/", "MIT Tech Review"),
+        ("https://venturebeat.com/category/ai/feed/", "VentureBeat AI"),
+        ("https://feeds.arstechnica.com/arstechnica/index", "Ars Technica"),
 
-    # --- 3. 中文科技与 AI 行业媒体（国内动态与应用落地） ---
-    ("https://36kr.com/feed", "36氪"),
-    ("https://sspai.com/feed", "少数派"),
-    ("https://www.tmtpost.com/rss.xml", "钛媒体"),
-    ("https://www.pingwest.com/feed", "PingWest 品玩"),
-    ("https://www.ithome.com/rss/", "IT之家"),
+        # --- 3. 中文科技与 AI 行业媒体 ---
+        ("https://36kr.com/feed", "36氪"),
+        ("https://sspai.com/feed", "少数派"),
+        ("https://www.tmtpost.com/rss.xml", "钛媒体"),
+        ("https://www.pingwest.com/feed", "PingWest 品玩"),
+        ("https://www.ithome.com/rss/", "IT之家"),
 
-    # --- 4. 开发者、开源社区与前沿论文 ---
-    ("https://news.ycombinator.com/rss", "Hacker News"),
-    ("http://export.arxiv.org/rss/cs.AI", "ArXiv Artificial Intelligence"),
-    ("http://export.arxiv.org/rss/cs.CL", "ArXiv Computation & Language"),
-    ("https://paperswithcode.com/rss/papers", "Papers With Code")
-]
+        # --- 4. 开发者、开源社区与前沿论文 ---
+        ("https://news.ycombinator.com/rss", "Hacker News"),
+        ("http://export.arxiv.org/rss/cs.AI", "ArXiv Artificial Intelligence"),
+        ("http://export.arxiv.org/rss/cs.CL", "ArXiv Computation & Language"),
+        ("https://paperswithcode.com/rss/papers", "Papers With Code")
+    ]
     
     news_items = []
+    seen_titles = set()
+
     for feed_url, source_name in feeds:
         try:
             parsed = feedparser.parse(feed_url)
             for entry in parsed.entries[:5]:
-                title = entry.get("title", "")
-                link = entry.get("link", "")
+                title = entry.get("title", "").strip()
+                link = entry.get("link", "").strip()
                 summary = entry.get("summary", "") or entry.get("description", "")
+                
+                # Deduplicate
+                if not title or title.lower() in seen_titles:
+                    continue
+                seen_titles.add(title.lower())
+                
                 # Clean html tags from summary
                 soup = BeautifulSoup(summary, "html.parser")
-                clean_text = soup.get_text()[:180] + "..." if soup.get_text() else title
+                clean_text = soup.get_text()[:200].strip() + "..." if soup.get_text() else title
                 
                 news_items.append({
                     "title": title,
@@ -65,7 +73,7 @@ def build_html_report(news_items):
     today_str = datetime.datetime.now().strftime("%Y年%m月%d日")
     
     cards_html = ""
-    for idx, item in enumerate(news_items[:15], start=1):
+    for idx, item in enumerate(news_items[:25], start=1):
         cards_html += f"""
         <div class="news-card">
             <div class="card-top">
@@ -88,7 +96,7 @@ def build_html_report(news_items):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>全球 AI 日报 | AI Daily Digest</title>
+    <title>全球 AI 日报 | Global AI Daily Digest</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=Noto+Sans+SC:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -97,6 +105,7 @@ def build_html_report(news_items):
             --bg-page: #090d16;
             --bg-surface: #111827;
             --border-subtle: rgba(255, 255, 255, 0.08);
+            --border-highlight: rgba(99, 102, 241, 0.4);
             --text-main: #f3f4f6;
             --text-muted: #9ca3af;
             --primary: #6366f1;
@@ -135,7 +144,7 @@ def build_html_report(news_items):
         </nav>
         <section class="hero">
             <h1>全球 AI 日报【{today_str}】</h1>
-            <p>基于 GitHub Actions 自动化搭建，每天早晨自动更新过去 24 小时全球最新 AI 资讯。</p>
+            <p>基于 GitHub Actions 自动化更新，搜集过去 24 小时全球顶尖实验室、媒体与开源社区最新 AI 动态。</p>
         </section>
         
         <div id="contentStream">
@@ -143,7 +152,7 @@ def build_html_report(news_items):
         </div>
 
         <footer>
-            <p>提示：内容由 AI 自动爬取与生成 | 每早 07:30 自动更新</p>
+            <p>提示：内容由 AI 自动搜集与生成 | 每天 07:30 自动更新</p>
         </footer>
     </div>
 </body>
@@ -151,8 +160,11 @@ def build_html_report(news_items):
 """
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(html_template)
-    print("index.html successfully updated!")
+    print("index.html successfully updated with multi-source news!")
 
 if __name__ == "__main__":
     items = fetch_rss_news()
+    print(f"Total fetched news items: {len(items)}")
     build_html_report(items)
+EOF
+
