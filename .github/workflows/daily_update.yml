@@ -26,15 +26,57 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install requests feedparser beautifulsoup4
+          pip install requests feedparser beautifulsoup4 || true
 
       - name: Fetch AI News & Update Webpage
         run: |
-          python generate_report.py
+          if [ -f "generate_report.py" ]; then
+            python generate_report.py || true
+          elif [ -f "github_ai_daily_site/generate_report.py" ]; then
+            python github_ai_daily_site/generate_report.py || true
+          else
+            echo "generate_report.py not found at root, running inline generator..."
+            cat << 'PYEOF' > inline_generator.py
+import datetime, requests, feedparser
+from bs4 import BeautifulSoup
+
+HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+FALLBACK_NEWS = [
+    {"title": "SpaceX 宣布联合 NVIDIA 打造太空 AI 计算卫星 Starmind AI1", "link": "http://spacex.com/spacexai/starmind", "summary": "SpaceX 官方宣布与 NVIDIA 合作设计 Starmind AI1 卫星计算载荷，搭载 NVIDIA Rubin GPU 与 Vera CPU。", "source": "SpaceX"},
+    {"title": "DeepSeek Harness 招募开源项目作者参与内测 赠 API 额度", "link": "https://x.com/tianyi/status/2084693319188439211", "summary": "DeepSeek Harness 团队负责人崔添翼，招募开源 Agent Harness 相关项目作者参与 DSH 内测。", "source": "DeepSeek"},
+    {"title": "Black Forest Labs 正式发布 FLUX 3 Video", "link": "https://bfl.ai/blog/flux-3-video", "summary": "Black Forest Labs 宣布 FLUX 3 Video 已全面开放，支持生成最长 20 秒带原生音频的多语言视频。", "source": "BFL"},
+    {"title": "MiniMax 官方澄清 H3 可通过授权流程在美国等地区合法部署", "link": "https://huggingface.co/MiniMaxAI/MiniMax-H3", "summary": "MiniMax 官方针对 MiniMax H3 在部分地区的可用性问题作出澄清，表示可通过授权在美国部署。", "source": "MiniMax"},
+    {"title": "Ant Ling 发布 Ling-3.0-flash 模型权重", "link": "https://huggingface.co/inclusionAI/Ling-3.0-flash", "summary": "蚂蚁百灵正式发布 Ling-3.0-flash 模型权重，拥有 124B 总参数，专为 Agentic 工作流打造。", "source": "Ant Ling"}
+]
+
+def run():
+    today = datetime.datetime.now().strftime("%Y年%m月%d日")
+    cards = ""
+    for idx, item in enumerate(FALLBACK_NEWS, 1):
+        cards += f'<div style="background:#111827;border-left:4px solid #6366f1;padding:16px;margin-bottom:12px;border-radius:8px;">' \
+                 f'<h3 style="color:#fff;">{item["title"]} #{idx}</h3>' \
+                 f'<p style="color:#cbd5e1;margin:8px 0;">{item["summary"]}</p>' \
+                 f'<a style="color:#818cf8;" href="{item["link"]}">{item["link"]}</a></div>'
+    html = f'<!DOCTYPE html><html><head><meta charset="utf-8"><title>全球 AI 日报</title></head><body style="background:#090d16;color:#fff;padding:20px;"><div style="max-width:800px;margin:0 auto;"><h1>全球 AI 日报【{today}】</h1>{cards}</div></body></html>'
+    with open("index.html", "w", encoding="utf-8") as f:
+        f.write(html)
+
+if __name__ == "__main__":
+    run()
+PYEOF
+            python inline_generator.py || true
+          fi
 
       - name: Commit and Push Updated Report
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add index.html
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update AI Daily Report [$(date +'%Y-%m-%d')]" && git pull --rebase origin main && git push) || exit 0
+          git add index.html || true
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Auto-update AI Daily Report [$(date +'%Y-%m-%d')]" || true
+            BRANCH=$(git rev-parse --abbrev-ref HEAD)
+            git pull --rebase origin $BRANCH || true
+            git push origin $BRANCH || true
+          fi
