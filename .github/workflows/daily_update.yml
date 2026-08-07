@@ -4,7 +4,7 @@ on:
   schedule:
     # Runs at 23:30 UTC every day (07:30 AM Beijing Time UTC+8)
     - cron: '30 23 * * *'
-  workflow_dispatch: # Allows manual trigger from GitHub Actions tab
+  workflow_dispatch: # Direct manual trigger
 
 permissions:
   contents: write
@@ -16,6 +16,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.ref_name }}
           fetch-depth: 0
 
       - name: Set up Python
@@ -26,14 +27,14 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install requests feedparser beautifulsoup4 || true
+          pip install requests feedparser beautifulsoup4
 
       - name: Fetch AI News & Update Webpage
         run: |
           if [ -f "generate_report.py" ]; then
-            python generate_report.py || true
+            python generate_report.py
           elif [ -f "github_ai_daily_site/generate_report.py" ]; then
-            python github_ai_daily_site/generate_report.py || true
+            python github_ai_daily_site/generate_report.py
           else
             echo "generate_report.py not found at root, running inline generator..."
             cat << 'PYEOF' > inline_generator.py
@@ -64,19 +65,18 @@ def run():
 if __name__ == "__main__":
     run()
 PYEOF
-            python inline_generator.py || true
+            python inline_generator.py
           fi
 
       - name: Commit and Push Updated Report
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add index.html || true
+          git add index.html
           if git diff --staged --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "Auto-update AI Daily Report [$(date +'%Y-%m-%d')]" || true
-            BRANCH=$(git rev-parse --abbrev-ref HEAD)
-            git pull --rebase origin $BRANCH || true
-            git push origin $BRANCH || true
+            git commit -m "Auto-update AI Daily Report [$(date +'%Y-%m-%d')]"
+            git pull --rebase origin ${{ github.ref_name }}
+            git push origin HEAD:${{ github.ref_name }}
           fi
